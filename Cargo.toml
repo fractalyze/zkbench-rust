@@ -1,0 +1,15 @@
+[package]
+name = "zkbench"
+description = "Reusable benchmarking library for zero-knowledge proof implementations."
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/fractalyze/zkbench"
+keywords = ["benchmark", "zk"]
+categories = ["development-tools::profiling"]
+
+[dependencies]
+chrono = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
