@@ -1,5 +1,5 @@
-<!-- Copyright 2026 Plonky3 Authors -->
-<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+<!-- Copyright 2026 zkbench-rust Authors -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
 
 # zkbench
 
