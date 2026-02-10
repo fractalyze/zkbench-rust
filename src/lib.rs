@@ -29,10 +29,12 @@
 //! let json = serde_json::to_string_pretty(&report).unwrap();
 //! ```
 
+mod hash;
 mod platform;
 mod schema;
 mod statistics;
 
+pub use hash::compute_hash;
 pub use platform::{get_cpu_vendor, Platform};
 pub use schema::{BenchmarkReport, BenchmarkResult, Metadata, MetricValue, TestVectors};
 pub use statistics::{calculate_confidence_interval, calculate_statistics};
