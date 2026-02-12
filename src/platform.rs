@@ -13,6 +13,8 @@ pub struct Platform {
     pub cpu_count: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cpu_vendor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gpu_vendor: Option<String>,
 }
 
 impl Platform {
@@ -25,6 +27,7 @@ impl Platform {
                 .map(|p| p.get())
                 .unwrap_or(1),
             cpu_vendor: get_cpu_vendor(),
+            gpu_vendor: get_gpu_vendor(),
         }
     }
 }
@@ -97,6 +100,108 @@ fn get_cpu_vendor_windows() -> Option<String> {
     std::env::var("PROCESSOR_IDENTIFIER").ok()
 }
 
+/// Detects GPU vendor/model string.
+///
+/// Returns GPU vendor information from:
+/// - Linux: nvidia-smi or rocm-smi
+/// - macOS: system_profiler SPDisplaysDataType
+pub fn get_gpu_vendor() -> Option<String> {
+    #[cfg(target_os = "macos")]
+    {
+        get_gpu_vendor_macos()
+    }
+    #[cfg(target_os = "linux")]
+    {
+        get_gpu_vendor_nvidia().or_else(get_gpu_vendor_rocm)
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+    {
+        None
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn get_gpu_vendor_nvidia() -> Option<String> {
+    use std::process::Command;
+
+    Command::new("nvidia-smi")
+        .args(["--query-gpu=name", "--format=csv,noheader"])
+        .output()
+        .ok()
+        .and_then(|output| {
+            if output.status.success() {
+                String::from_utf8(output.stdout).ok().and_then(|s| {
+                    let line = s.lines().next()?.trim();
+                    if line.is_empty() {
+                        None
+                    } else {
+                        Some(line.to_string())
+                    }
+                })
+            } else {
+                None
+            }
+        })
+}
+
+#[cfg(target_os = "linux")]
+fn get_gpu_vendor_rocm() -> Option<String> {
+    use std::process::Command;
+
+    Command::new("rocm-smi")
+        .arg("--showproductname")
+        .output()
+        .ok()
+        .and_then(|output| {
+            if output.status.success() {
+                String::from_utf8(output.stdout).ok().and_then(|s| {
+                    for line in s.lines() {
+                        if line.contains("Card Series") {
+                            if let Some(pos) = line.find(':') {
+                                let value = line[pos + 1..].trim();
+                                if !value.is_empty() {
+                                    return Some(value.to_string());
+                                }
+                            }
+                        }
+                    }
+                    None
+                })
+            } else {
+                None
+            }
+        })
+}
+
+#[cfg(target_os = "macos")]
+fn get_gpu_vendor_macos() -> Option<String> {
+    use std::process::Command;
+
+    Command::new("system_profiler")
+        .arg("SPDisplaysDataType")
+        .output()
+        .ok()
+        .and_then(|output| {
+            if output.status.success() {
+                String::from_utf8(output.stdout).ok().and_then(|s| {
+                    for line in s.lines() {
+                        if line.contains("Chipset Model:") {
+                            if let Some(pos) = line.find(':') {
+                                let value = line[pos + 1..].trim();
+                                if !value.is_empty() {
+                                    return Some(value.to_string());
+                                }
+                            }
+                        }
+                    }
+                    None
+                })
+            } else {
+                None
+            }
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -155,6 +260,7 @@ mod tests {
             arch: "x86_64".to_string(),
             cpu_count: 4,
             cpu_vendor: None,
+            gpu_vendor: None,
         };
         let json = serde_json::to_string(&platform).unwrap();
 
@@ -172,6 +278,7 @@ mod tests {
         assert_eq!(platform.arch, deserialized.arch);
         assert_eq!(platform.cpu_count, deserialized.cpu_count);
         assert_eq!(platform.cpu_vendor, deserialized.cpu_vendor);
+        assert_eq!(platform.gpu_vendor, deserialized.gpu_vendor);
     }
 
     #[test]
@@ -179,5 +286,53 @@ mod tests {
         // This test just ensures the function doesn't panic
         // The result depends on the platform
         let _vendor = get_cpu_vendor();
+    }
+
+    #[test]
+    fn test_get_gpu_vendor_no_crash() {
+        // This test just ensures the function doesn't panic
+        // The result depends on the platform
+        let _vendor = get_gpu_vendor();
+    }
+
+    #[test]
+    fn test_platform_gpu_vendor_skip_none() {
+        let platform = Platform {
+            os: "linux".to_string(),
+            arch: "x86_64".to_string(),
+            cpu_count: 4,
+            cpu_vendor: None,
+            gpu_vendor: None,
+        };
+        let json = serde_json::to_string(&platform).unwrap();
+
+        // gpu_vendor should be skipped when None
+        assert!(!json.contains("gpu_vendor"));
+    }
+
+    #[test]
+    fn test_platform_gpu_vendor_present() {
+        let json = r#"{"os": "linux", "arch": "x86_64", "cpu_count": 8, "gpu_vendor": "NVIDIA GeForce RTX 4090"}"#;
+        let platform: Platform = serde_json::from_str(json).unwrap();
+
+        assert_eq!(
+            platform.gpu_vendor,
+            Some("NVIDIA GeForce RTX 4090".to_string())
+        );
+    }
+
+    #[test]
+    fn test_platform_gpu_vendor_roundtrip() {
+        let platform = Platform {
+            os: "linux".to_string(),
+            arch: "x86_64".to_string(),
+            cpu_count: 8,
+            cpu_vendor: Some("Intel Core i9".to_string()),
+            gpu_vendor: Some("NVIDIA GeForce RTX 4090".to_string()),
+        };
+        let json = serde_json::to_string(&platform).unwrap();
+        let deserialized: Platform = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(platform.gpu_vendor, deserialized.gpu_vendor);
     }
 }
