@@ -33,6 +33,6 @@ mod platform;
 mod schema;
 mod statistics;
 
-pub use platform::{get_cpu_vendor, get_gpu_vendor, Platform};
+pub use platform::{Platform, get_cpu_vendor, get_gpu_vendor};
 pub use schema::{BenchmarkReport, BenchmarkResult, Metadata, MetricValue, TestVectors};
 pub use statistics::{calculate_confidence_interval, calculate_statistics};

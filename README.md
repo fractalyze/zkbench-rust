@@ -1,4 +1,5 @@
 <!-- Copyright 2026 zkbench-rust Authors -->
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
 # zkbench
@@ -9,8 +10,8 @@ Reusable benchmarking library for zero-knowledge proof implementations.
 
 zkbench provides common types and utilities for benchmark reporting across
 different ZK implementations with a standardized JSON schema. It's designed to
-facilitate consistent benchmark data collection and comparison across various
-ZK proof systems.
+facilitate consistent benchmark data collection and comparison across various ZK
+proof systems.
 
 ## Features
 
