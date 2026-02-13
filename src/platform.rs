@@ -67,10 +67,10 @@ fn get_cpu_vendor_linux() -> Option<String> {
 
     for line in reader.lines() {
         let line = line.ok()?;
-        if line.starts_with("model name") {
-            if let Some(pos) = line.find(':') {
-                return Some(line[pos + 1..].trim().to_string());
-            }
+        if line.starts_with("model name")
+            && let Some(pos) = line.find(':')
+        {
+            return Some(line[pos + 1..].trim().to_string());
         }
     }
     None
@@ -201,9 +201,11 @@ mod tests {
 
         // os should be one of the known operating systems
         assert!(!platform.os.is_empty());
-        assert!(["linux", "macos", "windows", "freebsd", "openbsd", "netbsd"]
-            .iter()
-            .any(|&os| platform.os == os || platform.os.contains(os)));
+        assert!(
+            ["linux", "macos", "windows", "freebsd", "openbsd", "netbsd"]
+                .iter()
+                .any(|&os| platform.os == os || platform.os.contains(os))
+        );
 
         // arch should be one of the known architectures
         assert!(!platform.arch.is_empty());

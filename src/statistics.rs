@@ -14,7 +14,10 @@
 /// # Panics
 /// Panics if values is empty.
 pub fn calculate_statistics(values: &[f64]) -> (f64, f64) {
-    assert!(!values.is_empty(), "Cannot calculate statistics on empty slice");
+    assert!(
+        !values.is_empty(),
+        "Cannot calculate statistics on empty slice"
+    );
 
     let n = values.len() as f64;
     let mean = values.iter().sum::<f64>() / n;
