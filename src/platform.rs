@@ -131,12 +131,11 @@ fn get_gpu_vendor_nvidia() -> Option<String> {
         .and_then(|output| {
             if output.status.success() {
                 String::from_utf8(output.stdout).ok().and_then(|s| {
-                    let line = s.lines().next()?.trim();
-                    if line.is_empty() {
-                        None
-                    } else {
-                        Some(line.to_string())
-                    }
+                    s.lines()
+                        .next()
+                        .map(str::trim)
+                        .filter(|line| !line.is_empty())
+                        .map(str::to_string)
                 })
             } else {
                 None
@@ -155,17 +154,12 @@ fn get_gpu_vendor_rocm() -> Option<String> {
         .and_then(|output| {
             if output.status.success() {
                 String::from_utf8(output.stdout).ok().and_then(|s| {
-                    for line in s.lines() {
-                        if line.contains("Card Series") {
-                            if let Some(pos) = line.find(':') {
-                                let value = line[pos + 1..].trim();
-                                if !value.is_empty() {
-                                    return Some(value.to_string());
-                                }
-                            }
-                        }
-                    }
-                    None
+                    s.lines()
+                        .find(|line| line.contains("Card Series"))
+                        .and_then(|line| line.split_once(':'))
+                        .map(|(_, value)| value.trim())
+                        .filter(|value| !value.is_empty())
+                        .map(str::to_string)
                 })
             } else {
                 None
@@ -184,17 +178,12 @@ fn get_gpu_vendor_macos() -> Option<String> {
         .and_then(|output| {
             if output.status.success() {
                 String::from_utf8(output.stdout).ok().and_then(|s| {
-                    for line in s.lines() {
-                        if line.contains("Chipset Model:") {
-                            if let Some(pos) = line.find(':') {
-                                let value = line[pos + 1..].trim();
-                                if !value.is_empty() {
-                                    return Some(value.to_string());
-                                }
-                            }
-                        }
-                    }
-                    None
+                    s.lines()
+                        .find(|line| line.contains("Chipset Model:"))
+                        .and_then(|line| line.split_once(':'))
+                        .map(|(_, value)| value.trim())
+                        .filter(|value| !value.is_empty())
+                        .map(str::to_string)
                 })
             } else {
                 None
