@@ -82,8 +82,9 @@ let measurements = vec![98.0, 102.0, 99.0, 101.0, 100.0];
 // Calculate mean and standard deviation
 let (mean, stdev) = calculate_statistics(&measurements);
 
-// Calculate 95% confidence interval
-let (lower, upper) = calculate_confidence_interval(mean, stdev, 0.95);
+// Calculate 95% confidence interval (mean ± z × stdev / √n)
+let n = measurements.len();
+let (lower, upper) = calculate_confidence_interval(mean, stdev, n, 0.95);
 ```
 
 ### Test Vectors
