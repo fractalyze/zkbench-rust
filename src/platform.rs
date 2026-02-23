@@ -84,15 +84,9 @@ fn get_cpu_vendor_macos() -> Option<String> {
         .args(["-n", "machdep.cpu.brand_string"])
         .output()
         .ok()
-        .and_then(|output| {
-            if output.status.success() {
-                String::from_utf8(output.stdout)
-                    .ok()
-                    .map(|s| s.trim().to_string())
-            } else {
-                None
-            }
-        })
+        .filter(|output| output.status.success())
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map(|s| s.trim().to_string())
 }
 
 #[cfg(target_os = "windows")]
@@ -128,18 +122,14 @@ fn get_gpu_vendor_nvidia() -> Option<String> {
         .args(["--query-gpu=name", "--format=csv,noheader"])
         .output()
         .ok()
-        .and_then(|output| {
-            if output.status.success() {
-                String::from_utf8(output.stdout).ok().and_then(|s| {
-                    s.lines()
-                        .next()
-                        .map(str::trim)
-                        .filter(|line| !line.is_empty())
-                        .map(str::to_string)
-                })
-            } else {
-                None
-            }
+        .filter(|output| output.status.success())
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .and_then(|s| {
+            s.lines()
+                .next()
+                .map(str::trim)
+                .filter(|line| !line.is_empty())
+                .map(str::to_string)
         })
 }
 
@@ -151,19 +141,15 @@ fn get_gpu_vendor_rocm() -> Option<String> {
         .arg("--showproductname")
         .output()
         .ok()
-        .and_then(|output| {
-            if output.status.success() {
-                String::from_utf8(output.stdout).ok().and_then(|s| {
-                    s.lines()
-                        .find(|line| line.contains("Card Series"))
-                        .and_then(|line| line.split_once(':'))
-                        .map(|(_, value)| value.trim())
-                        .filter(|value| !value.is_empty())
-                        .map(str::to_string)
-                })
-            } else {
-                None
-            }
+        .filter(|output| output.status.success())
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .and_then(|s| {
+            s.lines()
+                .find(|line| line.contains("Card Series"))
+                .and_then(|line| line.split_once(':'))
+                .map(|(_, value)| value.trim())
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
         })
 }
 
@@ -175,19 +161,15 @@ fn get_gpu_vendor_macos() -> Option<String> {
         .arg("SPDisplaysDataType")
         .output()
         .ok()
-        .and_then(|output| {
-            if output.status.success() {
-                String::from_utf8(output.stdout).ok().and_then(|s| {
-                    s.lines()
-                        .find(|line| line.contains("Chipset Model:"))
-                        .and_then(|line| line.split_once(':'))
-                        .map(|(_, value)| value.trim())
-                        .filter(|value| !value.is_empty())
-                        .map(str::to_string)
-                })
-            } else {
-                None
-            }
+        .filter(|output| output.status.success())
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .and_then(|s| {
+            s.lines()
+                .find(|line| line.contains("Chipset Model:"))
+                .and_then(|line| line.split_once(':'))
+                .map(|(_, value)| value.trim())
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
         })
 }
 
