@@ -145,7 +145,7 @@ pub trait RustBenchmark {
 /// Compute median of a f64 slice.
 pub fn median(values: &[f64]) -> f64 {
     let mut sorted = values.to_vec();
-    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    sorted.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let n = sorted.len();
     if n % 2 == 0 {
         (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
@@ -225,13 +225,31 @@ fn parse_args(config: &BenchmarkConfig) -> BenchArgs {
     let mut i = 1;
     while i < args.len() {
         if let Some(val) = args[i].strip_prefix("--iterations=") {
-            iterations = val.parse().unwrap();
+            iterations = match val.parse() {
+                Ok(v) => v,
+                Err(_) => {
+                    eprintln!("Invalid --iterations value: {val}");
+                    std::process::exit(1);
+                }
+            };
         } else if let Some(val) = args[i].strip_prefix("--warmup=") {
-            warmup = val.parse().unwrap();
+            warmup = match val.parse() {
+                Ok(v) => v,
+                Err(_) => {
+                    eprintln!("Invalid --warmup value: {val}");
+                    std::process::exit(1);
+                }
+            };
         } else if let Some(val) = args[i].strip_prefix("--output=") {
             output = Some(val.to_string());
         } else if let Some(val) = args[i].strip_prefix("--sizes=") {
-            sizes = val.split(',').map(|s| s.trim().parse().unwrap()).collect();
+            sizes = match val.split(',').map(|s| s.trim().parse()).collect() {
+                Ok(v) => v,
+                Err(_) => {
+                    eprintln!("Invalid --sizes value: {val}");
+                    std::process::exit(1);
+                }
+            };
         }
         i += 1;
     }
@@ -291,7 +309,10 @@ pub fn run(bench: &mut dyn RustBenchmark) -> i32 {
     let json = serde_json::to_string_pretty(&report).unwrap();
     match &args.output {
         Some(path) => {
-            std::fs::write(path, &json).unwrap();
+            if let Err(e) = std::fs::write(path, &json) {
+                eprintln!("Error writing {path}: {e}");
+                return 1;
+            }
             eprintln!("Wrote {}", path);
         }
         None => {
