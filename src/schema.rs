@@ -103,6 +103,29 @@ pub struct BenchmarkReport {
     pub benchmarks: HashMap<String, BenchmarkResult>,
 }
 
+impl BenchmarkReport {
+    /// Serializes the report to a JSON string. Mirrors C++'s
+    /// `BenchmarkReport::ToJson(int indent)` so callers don't need to
+    /// import `serde_json` directly.
+    ///
+    /// # Arguments
+    /// * `pretty` - if true, output is indented (2 spaces); otherwise
+    ///   single-line.
+    pub fn to_json(&self, pretty: bool) -> Result<String, serde_json::Error> {
+        if pretty {
+            serde_json::to_string_pretty(self)
+        } else {
+            serde_json::to_string(self)
+        }
+    }
+
+    /// Parses a `BenchmarkReport` from a JSON string. Mirrors C++'s
+    /// `BenchmarkReport::FromJson`.
+    pub fn from_json(s: &str) -> Result<Self, serde_json::Error> {
+        serde_json::from_str(s)
+    }
+}
+
 /// Gets the current git commit SHA (first 12 characters).
 fn get_git_commit_sha() -> String {
     Command::new("git")
@@ -308,5 +331,44 @@ mod tests {
         );
         assert_eq!(deserialized.metadata.version, report.metadata.version);
         assert!(deserialized.benchmarks.contains_key("my_bench"));
+    }
+
+    #[test]
+    fn to_json_pretty_and_compact() {
+        let mut benchmarks = HashMap::new();
+        benchmarks.insert(
+            "x".to_string(),
+            BenchmarkResult {
+                latency: Some(MetricValue::new(1.0, "ms")),
+                ..Default::default()
+            },
+        );
+        let report = BenchmarkReport {
+            metadata: Metadata::create("t", "0.0.0"),
+            benchmarks,
+        };
+        let pretty = report.to_json(true).unwrap();
+        let compact = report.to_json(false).unwrap();
+        assert!(pretty.contains('\n'));
+        assert!(!compact.contains('\n'));
+    }
+
+    #[test]
+    fn from_json_roundtrip() {
+        let mut benchmarks = HashMap::new();
+        benchmarks.insert(
+            "y".to_string(),
+            BenchmarkResult {
+                throughput: Some(MetricValue::new(42.0, "ops/s")),
+                ..Default::default()
+            },
+        );
+        let report = BenchmarkReport {
+            metadata: Metadata::create("t", "0.0.0"),
+            benchmarks,
+        };
+        let json = report.to_json(false).unwrap();
+        let parsed = BenchmarkReport::from_json(&json).unwrap();
+        assert!(parsed.benchmarks.contains_key("y"));
     }
 }

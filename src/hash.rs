@@ -11,6 +11,24 @@ pub fn compute_hash(data: &[u8]) -> String {
     format!("{:x}", digest)
 }
 
+/// Computes the SHA-256 hash of a typed slice by re-interpreting it as
+/// little-endian raw bytes (parity with the C++ `ComputeArrayHash<T>`
+/// helper). The element type must be `bytemuck::Pod` so the cast is
+/// sound and free of padding.
+///
+/// # Example
+///
+/// ```
+/// use zkbench::compute_array_hash;
+///
+/// let counts: [u64; 3] = [10, 20, 30];
+/// let h = compute_array_hash(&counts);
+/// assert_eq!(h.len(), 64);
+/// ```
+pub fn compute_array_hash<T: bytemuck::Pod>(data: &[T]) -> String {
+    compute_hash(bytemuck::cast_slice(data))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -54,6 +72,30 @@ mod tests {
             .flat_map(|v| v.to_le_bytes())
             .collect();
         assert_eq!(compute_hash(&a), compute_hash(&b));
+    }
+
+    #[test]
+    fn array_hash_matches_le_bytes() {
+        // compute_array_hash should produce the same digest as the
+        // hand-rolled little-endian byte stream from `uint32_array_le`.
+        let arr: [u32; 3] = [1, 2, 3];
+        assert_eq!(
+            compute_array_hash(&arr),
+            "4636993d3e1da4e9d6b8f87b79e8f7c6d018580d52661950eabc3845c5897a4d"
+        );
+    }
+
+    #[test]
+    fn array_hash_typed_u64() {
+        let counts: [u64; 3] = [10, 20, 30];
+        let manual: Vec<u8> = counts.iter().flat_map(|v| v.to_le_bytes()).collect();
+        assert_eq!(compute_array_hash(&counts), compute_hash(&manual));
+    }
+
+    #[test]
+    fn array_hash_empty() {
+        let empty: [u32; 0] = [];
+        assert_eq!(compute_array_hash(&empty), compute_hash(b""));
     }
 
     #[test]

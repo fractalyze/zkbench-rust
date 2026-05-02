@@ -33,8 +33,12 @@ mod hash;
 mod platform;
 mod schema;
 mod statistics;
+mod stopwatch;
 
-pub use hash::compute_hash;
+pub use hash::{compute_array_hash, compute_hash};
 pub use platform::{Platform, get_cpu_vendor, get_gpu_vendor};
 pub use schema::{BenchmarkReport, BenchmarkResult, Metadata, MetricValue, TestVectors};
-pub use statistics::{calculate_confidence_interval, calculate_statistics};
+pub use statistics::{
+    calculate_confidence_interval, calculate_confidence_interval_default, calculate_statistics,
+};
+pub use stopwatch::{ScopedStopwatch, Stopwatch};
