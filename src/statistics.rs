@@ -72,6 +72,15 @@ pub fn calculate_confidence_interval(
     (mean - margin, mean + margin)
 }
 
+/// 95%-confidence variant of [`calculate_confidence_interval`]. Mirrors
+/// the C++ default argument (`confidence = 0.95`) since Rust has no
+/// default function arguments.
+///
+/// Equivalent to `calculate_confidence_interval(mean, stdev, n, 0.95)`.
+pub fn calculate_confidence_interval_default(mean: f64, stdev: f64, n: usize) -> (f64, f64) {
+    calculate_confidence_interval(mean, stdev, n, 0.95)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,5 +114,12 @@ mod tests {
         let (lower, upper) = calculate_confidence_interval(50.0, 5.0, 1, 0.95);
         assert!((lower - 40.2).abs() < 0.0001);
         assert!((upper - 59.8).abs() < 0.0001);
+    }
+
+    #[test]
+    fn default_helper_matches_explicit_95() {
+        let explicit = calculate_confidence_interval(100.0, 10.0, 25, 0.95);
+        let defaulted = calculate_confidence_interval_default(100.0, 10.0, 25);
+        assert_eq!(explicit, defaulted);
     }
 }
