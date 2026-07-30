@@ -29,12 +29,14 @@
 //! let json = serde_json::to_string_pretty(&report).unwrap();
 //! ```
 
+pub mod benchmark;
 mod hash;
 mod platform;
 mod schema;
 mod statistics;
 mod stopwatch;
 
+pub use benchmark::{BenchArgs, BenchmarkConfig, BenchmarkOp, RustBenchmark, median, run};
 pub use hash::{compute_array_hash, compute_hash};
 pub use platform::{Platform, get_cpu_vendor, get_gpu_vendor};
 pub use schema::{BenchmarkReport, BenchmarkResult, Metadata, MetricValue, TestVectors};
