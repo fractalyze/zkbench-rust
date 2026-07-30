@@ -147,7 +147,7 @@ pub fn median(values: &[f64]) -> f64 {
     let mut sorted = values.to_vec();
     sorted.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let n = sorted.len();
-    if n % 2 == 0 {
+    if n.is_multiple_of(2) {
         (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
     } else {
         sorted[n / 2]
@@ -195,7 +195,7 @@ fn run_single_op(op: &mut BenchmarkOp, iterations: usize, warmup: usize) -> Benc
     // Test vectors
     let test_vectors = if op.output_hash_fn.is_some() || op.verify_fn.is_some() {
         let output_hash = op.output_hash_fn.as_mut().map_or(String::new(), |f| f());
-        let verified = op.verify_fn.as_mut().map_or(true, |f| f());
+        let verified = op.verify_fn.as_mut().is_none_or(|f| f());
         Some(TestVectors {
             input_hash: op.input_hash.clone(),
             output_hash,
@@ -291,11 +291,11 @@ pub fn run(bench: &mut dyn RustBenchmark) -> i32 {
         eprintln!("  {}...", op.name);
         let result = run_single_op(op, args.iterations, args.warmup);
 
-        if let Some(tv) = &result.test_vectors {
-            if !tv.verified {
-                eprintln!("  VERIFICATION FAILED: {}", op.name);
-                all_verified = false;
-            }
+        if let Some(tv) = &result.test_vectors
+            && !tv.verified
+        {
+            eprintln!("  VERIFICATION FAILED: {}", op.name);
+            all_verified = false;
         }
 
         if let Some(lat) = &result.latency {
@@ -320,11 +320,7 @@ pub fn run(bench: &mut dyn RustBenchmark) -> i32 {
         }
     }
 
-    if all_verified {
-        0
-    } else {
-        1
-    }
+    if all_verified { 0 } else { 1 }
 }
 
 #[cfg(test)]
